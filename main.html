@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DTK - Main</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #eef2f5;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 頂部工具列 */
+        .toolbar {
+            background-color: #333;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 20;
+            flex-shrink: 0;
+        }
+
+        .time-display {
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            z-index: 1;
+        }
+
+        .toolbar-msg {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff4c4c;
+            font-weight: bold;
+            font-size: 1rem;
+            white-space: nowrap;
+            z-index: 0;
+            transition: opacity 0.3s;
+        }
+
+        .auth-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1;
+        }
+
+        .auth-area input[type="text"],
+        .auth-area input[type="password"] {
+            padding: 6px 10px;
+            font-size: 0.9rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+            width: 120px;
+        }
+
+        .username-display {
+            font-size: 1rem;
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 6px 15px;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-login { background-color: #007bff; color: white; }
+        .btn-login:hover { background-color: #0056b3; }
+        .btn-logout { background-color: #dc3545; color: white; }
+        .btn-logout:hover { background-color: #c82333; }
+
+        .layout-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: #2c3e50;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .sidebar-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #34495e;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .sidebar-item:hover {
+            background-color: #1abc9c;
+        }
+
+        .flyout-menu {
+            display: none;
+            position: absolute;
+            left: 100%;
+            top: 0;
+            background-color: #34495e;
+            min-width: 200px;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
+            flex-direction: column;
+        }
+
+        .sidebar-item.has-flyout:hover .flyout-menu {
+            display: flex;
+        }
+
+        .flyout-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #2c3e50;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+        }
+
+        .flyout-item:hover {
+            background-color: #16a085;
+        }
+
+        .param-badge {
+            display: block;
+            font-size: 0.75rem;
+            color: #f1c40f;
+            margin-top: 5px;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 40px;
+            text-align: center;
+            color: #555;
+            background-color: #eef2f5;
+            overflow-y: auto;
+        }
+
+        #future-dev-container {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <div class="time-display" id="local-time-display">Calculating time...</div>
+        <div class="toolbar-msg" id="toolbar-msg"></div>
+        <div class="auth-area" id="auth-area"></div>
+    </div>
+
+    <div class="layout-container">
+        <div class="sidebar" id="sidebar"></div>
+
+        <div class="content">
+            <h2 id="welcome-text">Welcome to Main Page</h2>
+            <a href="index.html" id="return-text" style="color: #007bff; text-decoration: none; margin-top: 20px; display: inline-block;">Return to Home</a>
+            
+            <div id="future-dev-container">
+                [系統預留開發區塊] <br><br>
+                已接收傳遞參數：<span id="dev-param-display" style="color: #4CAF50; font-weight: bold;"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const userDatabase = {
+            "admin": "123456",
+            "Admin": "Password",
+            "player1": "dtk2026",
+            "Player1": "DTK2026",
+            "test": "test"
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedLang = urlParams.get('lang') || 'en';
+        const selectedUtc = urlParams.get('utc') || '0';
+
+        const uiTranslations = {
+            "en": { login: "Login", logout: "Logout", userPlaceholder: "Username", passPlaceholder: "Password", welcome: "Welcome to Main Page", return: "Return to Home", dateFormat: "en-US", msgNoUser: "No username entered", msgNoPass: "No password entered", msgNone: "Username and password not entered", msgNoAcc: "Account does not exist", msgWrongPass: "Incorrect password", msgSuccess: "Login successful", genInfo: "General Information", m1: "Hero Training", m2: "Equipment Guide", m3: "Town Development", m4: "Island Construction", m5: "Lord Equipment", m6: "Lord Gems", m7: "Pet Training", m8: "Special Events", sub1: "Alliance Championship", sub2: "Sanctuary Battle", sub3: "Desert Trial", sub4: "Bear Hunt", sub5: "Castle Battle", sub6: "Swordland Showdown" },
+            "pt": { login: "Entrar", logout: "Sair", userPlaceholder: "Usuário", passPlaceholder: "Senha", welcome: "Bem-vindo à Página Principal", return: "Voltar ao Início", dateFormat: "pt-PT", msgNoUser: "Nenhum usuário inserido", msgNoPass: "Nenhuma senha inserida", msgNone: "Usuário e senha não inseridos", msgNoAcc: "Conta não existe", msgWrongPass: "Senha incorreta", msgSuccess: "Login bem-sucedido", genInfo: "Informações Gerais", m1: "Treinamento de Herói", m2: "Guia de Equipamentos", m3: "Desenvolvimento da Cidade", m4: "Construção da Ilha", m5: "Equipamento do Lorde", m6: "Gemas do Lorde", m7: "Treinamento de Pets", m8: "Eventos Especiais", sub1: "Campeonato da Aliança", sub2: "Batalha do Santuário", sub3: "Provação do Deserto", sub4: "Caça ao Urso", sub5: "Batalha do Castelo", sub6: "Confronto da Terra das Espadas" },
+            "es": { login: "Entrar", logout: "Salir", userPlaceholder: "Usuario", passPlaceholder: "Contraseña", welcome: "Bienvenido a la página principal", return: "Volver al inicio", dateFormat: "es-ES", msgNoUser: "No se ingresó usuario", msgNoPass: "No se ingresó contraseña", msgNone: "Usuario y contraseña no ingresados", msgNoAcc: "La cuenta no existe", msgWrongPass: "Contraseña incorrecta", msgSuccess: "Inicio de sesión exitoso", genInfo: "Información General", m1: "Entrenamiento de Héroes", m2: "Guía de Equipamiento", m3: "Desarrollo de la Ciudad", m4: "Construcción de la Isla", m5: "Equipamiento del Lord", m6: "Gemas del Lord", m7: "Entrenamiento de Mascotas", m8: "Eventos Especiales", sub1: "Campeonato de la Alianza", sub2: "Batalla del Santuario", sub3: "Prueba del Desierto", sub4: "Caza del Oso", sub5: "Batalla del Castillo", sub6: "Enfrentamiento de la Tierra de las Espadas" },
+            "fr": { login: "Connexion", logout: "Déconnexion", userPlaceholder: "Identifiant", passPlaceholder: "Mot de passe", welcome: "Bienvenue sur la page principale", return: "Retour à l'accueil", dateFormat: "fr-FR", msgNoUser: "Aucun nom d'utilisateur", msgNoPass: "Aucun mot de passe", msgNone: "Identifiant et mot de passe non saisis", msgNoAcc: "Le compte n'existe pas", msgWrongPass: "Mot de passe incorrect", msgSuccess: "Connexion réussie", genInfo: "Informations Générales", m1: "Entraînement de Héros", m2: "Guide d'Équipement", m3: "Développement de la Ville", m4: "Construction de l'Île", m5: "Équipement du Seigneur", m6: "Gemmes du Seigneur", m7: "Entraînement d'Animaux", m8: "Événements Spéciaux", sub1: "Championnat de l'Alliance", sub2: "Bataille du Sanctuaire", sub3: "Épreuve du Désert", sub4: "Chasse à l'Ours", sub5: "Bataille du Château", sub6: "Affrontement du Pays des Épées" },
+            "de": { login: "Anmelden", logout: "Abmelden", userPlaceholder: "Benutzername", passPlaceholder: "Passwort", welcome: "Willkommen auf der Hauptseite", return: "Zurück zur Startseite", dateFormat: "de-DE", msgNoUser: "Kein Benutzername eingegeben", msgNoPass: "Kein Passwort eingegeben", msgNone: "Benutzername und Passwort nicht eingegeben", msgNoAcc: "Konto existiert nicht", msgWrongPass: "Falsches Passwort", msgSuccess: "Anmeldung erfolgreich", genInfo: "Allgemeine Informationen", m1: "Heldenausbildung", m2: "Ausrüstungsleitfaden", m3: "Stadtentwicklung", m4: "Inselbau", m5: "Lord-Ausrüstung", m6: "Lord-Edelsteine", m7: "Haustier-Training", m8: "Besondere Ereignisse", sub1: "Allianzmeisterschaft", sub2: "Heiligtumsschlacht", sub3: "Wüstenprüfung", sub4: "Bärenjagd", sub5: "Burgschlacht", sub6: "Schwertland-Showdown" },
+            "it": { login: "Accedi", logout: "Esci", userPlaceholder: "Utente", passPlaceholder: "Password", welcome: "Benvenuto nella pagina principale", return: "Torna alla Home", dateFormat: "it-IT", msgNoUser: "Nessun utente inserito", msgNoPass: "Nessuna password inserita", msgNone: "Utente e password non inseriti", msgNoAcc: "L'account non esiste", msgWrongPass: "Password errata", msgSuccess: "Accesso effettuato", genInfo: "Informazioni Generali", m1: "Addestramento Eroi", m2: "Guida all'Equipaggiamento", m3: "Sviluppo della Città", m4: "Costruzione dell'Isola", m5: "Equipaggiamento del Lord", m6: "Gemme del Lord", m7: "Addestramento Cuccioli", m8: "Eventi Speciali", sub1: "Campionato dell'Alleanza", sub2: "Battaglia del Santuario", sub3: "Prova del Deserto", sub4: "Caccia all'Orso", sub5: "Battaglia del Castello", sub6: "Resa dei Conti della Terra delle Spade" },
+            "pl": { login: "Zaloguj", logout: "Wyloguj", userPlaceholder: "Użytkownik", passPlaceholder: "Hasło", welcome: "Witamy na stronie głównej", return: "Powrót do strony głównej", dateFormat: "pl-PL", msgNoUser: "Brak nazwy użytkownika", msgNoPass: "Brak hasła", msgNone: "Brak nazwy i hasła", msgNoAcc: "Konto nie istnieje", msgWrongPass: "Nieprawidłowe hasło", msgSuccess: "Logowanie pomyślne", genInfo: "Informacje Ogólne", m1: "Trening Bohaterów", m2: "Przewodnik po Sprzęcie", m3: "Rozwój Miasta", m4: "Budowa Wyspy", m5: "Wyposażenie Lorda", m6: "Klejnoty Lorda", m7: "Trening Zwierzaków", m8: "Wydarzenia Specjalne", sub1: "Mistrzostwa Sojuszu", sub2: "Bitwa o Sanktuarium", sub3: "Próba Pustyni", sub4: "Polowanie na Niedźwiedzia", sub5: "Bitwa o Zamek", sub6: "Starcie w Krainie Mieczy" },
+            "de-at": { login: "Anmelden", logout: "Abmelden", userPlaceholder: "Benutzername", passPlaceholder: "Passwort", welcome: "Willkommen auf der Hauptseite", return: "Zurück zur Startseite", dateFormat: "de-AT", msgNoUser: "Kein Benutzername eingegeben", msgNoPass: "Kein Passwort eingegeben", msgNone: "Benutzername und Passwort nicht eingegeben", msgNoAcc: "Konto existiert nicht", msgWrongPass: "Falsches Passwort", msgSuccess: "Anmeldung erfolgreich", genInfo: "Allgemeine Informationen", m1: "Heldenausbildung", m2: "Ausrüstungsleitfaden", m3: "Stadtentwicklung", m4: "Inselbau", m5: "Lord-Ausrüstung", m6: "Lord-Edelsteine", m7: "Haustier-Training", m8: "Besondere Ereignisse", sub1: "Allianzmeisterschaft", sub2: "Heiligtumsschlacht", sub3: "Wüstenprüfung", sub4: "Bärenjagd", sub5: "Burgschlacht", sub6: "Schwertland-Showdown" },
+            "hu": { login: "Belépés", logout: "Kilépés", userPlaceholder: "Felhasználónév", passPlaceholder: "Jelszó", welcome: "Üdvözöljük a főoldalon", return: "Vissza a kezdőlapra", dateFormat: "hu-HU", msgNoUser: "Nincs felhasználónév", msgNoPass: "Nincs jelszó", msgNone: "Név és jelszó hiányzik", msgNoAcc: "A fiók nem létezik", msgWrongPass: "Hibás jelszó", msgSuccess: "Sikeres bejelentkezés", genInfo: "Általános Információk", m1: "Hős Képzés", m2: "Felszerelés Útmutató", m3: "Városfejlesztés", m4: "Sziget Építés", m5: "Lord Felszerelés", m6: "Lord Drágakövek", m7: "Kisállat Képzés", m8: "Különleges Események", sub1: "Szövetségi Bajnokság", sub2: "Szentély Csata", sub3: "Sivatagi Próba", sub4: "Medvevadászat", sub5: "Kastély Csata", sub6: "Kardföld Leszámolás" },
+            "ru": { login: "Войти", logout: "Выйти", userPlaceholder: "Пользователь", passPlaceholder: "Пароль", welcome: "Добро пожаловать на главную страницу", return: "Вернуться на главную", dateFormat: "ru-RU", msgNoUser: "Нет имени пользователя", msgNoPass: "Нет пароля", msgNone: "Имя и пароль не введены", msgNoAcc: "Аккаунт не существует", msgWrongPass: "Неверный пароль", msgSuccess: "Успешный вход", genInfo: "Общая информация", m1: "Обучение героев", m2: "Руководство по снаряжению", m3: "Развитие города", m4: "Строительство острова", m5: "Снаряжение лорда", m6: "Самоцветы лорда", m7: "Обучение питомцев", m8: "Особые события", sub1: "Чемпионат альянса", sub2: "Битва за святилище", sub3: "Испытание в пустыне", sub4: "Охота на медведя", sub5: "Битва за замок", sub6: "Разборка на земле мечей" },
+            "tr": { login: "Giriş", logout: "Çıkış", userPlaceholder: "Kullanıcı Adı", passPlaceholder: "Şifre", welcome: "Ana Sayfaya Hoş Geldiniz", return: "Ana Sayfaya Dön", dateFormat: "tr-TR", msgNoUser: "Kullanıcı adı girilmedi", msgNoPass: "Şifre girilmedi", msgNone: "Kullanıcı adı ve şifre girilmedi", msgNoAcc: "Hesap bulunamadı", msgWrongPass: "Yanlış şifre", msgSuccess: "Giriş başarılı", genInfo: "Genel Bilgiler", m1: "Kahraman Eğitimi", m2: "Ekipman Rehberi", m3: "Şehir Gelişimi", m4: "Ada İnşası", m5: "Lord Ekipmanı", m6: "Lord Mücevherleri", m7: "Evcil Hayvan Eğitimi", m8: "Özel Etkinlikler", sub1: "İttifak Şampiyonası", sub2: "Sığınak Savaşı", sub3: "Çöl Denemesi", sub4: "Ayı Avı", sub5: "Kale Savaşı", sub6: "Kılıç Diyarı Hesaplaşması" },
+            "ar": { login: "تسجيل الدخول", logout: "تسجيل الخروج", userPlaceholder: "اسم المستخدم", passPlaceholder: "كلمة المرور", welcome: "مرحبًا بك في الصفحة الرئيسية", return: "العودة إلى الصفحة الرئيسية", dateFormat: "ar-SA", msgNoUser: "لا يوجد اسم مستخدم", msgNoPass: "لا توجد كلمة مرور", msgNone: "لم يتم إدخال الاسم وكلمة المرور", msgNoAcc: "الحساب غير موجود", msgWrongPass: "كلمة المرور غير صحيحة", msgSuccess: "تم تسجيل الدخول بنجاح", genInfo: "معلومات عامة", m1: "تدريب الأبطال", m2: "دليل المعدات", m3: "تطوير المدينة", m4: "بناء الجزيرة", m5: "معدات اللورد", m6: "جواهر اللورد", m7: "تدريب الحيوانات الأليفة", m8: "أحداث خاصة", sub1: "بطولة التحالف", sub2: "معركة الملاذ", sub3: "محاكمة الصحراء", sub4: "صيد الدب", sub5: "معركة القلعة", sub6: "مواجهة أرض السيوف" },
+            "fa": { login: "ورود", logout: "خروج", userPlaceholder: "نام کاربری", passPlaceholder: "رمز عبور", welcome: "به صفحه اصلی خوش آمدید", return: "بازگشت به خانه", dateFormat: "fa-IR", msgNoUser: "نام کاربری وارد نشده", msgNoPass: "رمز عبور وارد نشده", msgNone: "نام و رمز عبور وارد نشده اند", msgNoAcc: "حساب کاربری وجود ندارد", msgWrongPass: "رمز عبور اشتباه است", msgSuccess: "ورود موفقیت‌آمیز", genInfo: "اطلاعات عمومی", m1: "آموزش قهرمانان", m2: "راهنمای تجهیزات", m3: "توسعه شهر", m4: "ساخت جزیره", m5: "تجهیزات لرد", m6: "جواهرات لرد", m7: "آموزش حیوانات خانگی", m8: "رویدادهای ویژه", sub1: "قهرمانی اتحاد", sub2: "نبرد پناهگاه", sub3: "آزمایش صحرا", sub4: "شکار خرس", sub5: "نبرد قلعه", sub6: "رویارویی سرزمین شمشیرها" },
+            "ta": { login: "உள்நுழை", logout: "வெளியேறு", userPlaceholder: "பயனர்பெயர்", passPlaceholder: "கடவுச்சொல்", welcome: "முதன்மை பக்கத்திற்கு வருக", return: "முகப்பிற்கு திரும்பு", dateFormat: "ta-IN", msgNoUser: "பயனர்பெயர் இல்லை", msgNoPass: "கடவுச்சொல் இல்லை", msgNone: "பயனர்பெயர் மற்றும் கடவுச்சொல் இல்லை", msgNoAcc: "கணக்கு இல்லை", msgWrongPass: "தவறான கடவுச்சொல்", msgSuccess: "உள்நுழைவு வெற்றி", genInfo: "பொது தகவல்", m1: "ஹீரோ பயிற்சி", m2: "உபகரண வழிகாட்டி", m3: "நகர மேம்பாடு", m4: "தீவு নির্মাণ", m5: "பிரபு உபகரணங்கள்", m6: "பிரபு ரத்தினங்கள்", m7: "செல்லப்பிராணி பயிற்சி", m8: "சிறப்பு நிகழ்வுகள்", sub1: "கூட்டணி சாம்பியன்ஷிப்", sub2: "சரணாலய போர்", sub3: "பாலைவன சோதனை", sub4: "கரடி வேட்டை", sub5: "கோட்டை போர்", sub6: "வாள்நிலம் மோதல்" },
+            "zh-cn": { login: "登录", logout: "登出", userPlaceholder: "账号", passPlaceholder: "密码", welcome: "欢迎来到主页面", return: "返回首页", dateFormat: "zh-CN", msgNoUser: "没有输入账号名称", msgNoPass: "没有输入密码", msgNone: "账户名称及密码皆没有输入", msgNoAcc: "没有此账户", msgWrongPass: "密码错误", msgSuccess: "登录成功", genInfo: "一般资讯", m1: "英雄培养", m2: "装备指南", m3: "城镇发展", m4: "海岛建设", m5: "领主装备", m6: "领主宝石", m7: "宠物培养", m8: "专属活动", sub1: "联盟争霸赛", sub2: "遗迹争夺", sub3: "荒野的试炼", sub4: "狩猎巨熊", sub5: "决战王城", sub6: "圣剑争夺" },
+            "vi": { login: "Đăng nhập", logout: "Đăng xuất", userPlaceholder: "Tên người dùng", passPlaceholder: "Mật khẩu", welcome: "Chào mừng đến với trang chính", return: "Trở về trang chủ", dateFormat: "vi-VN", msgNoUser: "Chưa nhập tên", msgNoPass: "Chưa nhập mật khẩu", msgNone: "Chưa nhập tên và mật khẩu", msgNoAcc: "Tài khoản không tồn tại", msgWrongPass: "Sai mật khẩu", msgSuccess: "Đăng nhập thành công", genInfo: "Thông tin chung", m1: "Huấn luyện Anh hùng", m2: "Hướng dẫn Trang bị", m3: "Phát triển Thành phố", m4: "Xây dựng Đảo", m5: "Trang bị Lãnh chúa", m6: "Đá quý Lãnh chúa", m7: "Huấn luyện Thú cưng", m8: "Sự kiện Đặc biệt", sub1: "Giải vô địch Liên minh", sub2: "Trận chiến Tôn sùng", sub3: "Thử thách Sa mạc", sub4: "Săn Gấu", sub5: "Trận chiến Lâu đài", sub6: "Trận chiến Vùng đất Kiếm" },
+            "zh-tw": { login: "登入", logout: "登出", userPlaceholder: "帳號", passPlaceholder: "密碼", welcome: "歡迎來到主頁面", return: "返回首頁", dateFormat: "zh-TW", msgNoUser: "沒有輸入帳號名稱", msgNoPass: "沒有輸入密碼", msgNone: "帳戶名稱及密碼皆沒有輸入", msgNoAcc: "沒有此帳戶", msgWrongPass: "密碼錯誤", msgSuccess: "登入成功", genInfo: "一般資訊", m1: "英雄培養", m2: "裝備指南", m3: "城鎮發展", m4: "海島建設", m5: "領主裝備", m6: "領主寶石", m7: "寵物培養", m8: "專屬活動", sub1: "聯盟爭霸賽", sub2: "遺跡爭奪", sub3: "荒野的試煉", sub4: "狩獵巨熊", sub5: "決戰王城", sub6: "聖劍爭奪" },
+            "ms": { login: "Log Masuk", logout: "Log Keluar", userPlaceholder: "Nama Pengguna", passPlaceholder: "Kata Laluan", welcome: "Selamat Datang ke Halaman Utama", return: "Kembali ke Laman Utama", dateFormat: "ms-MY", msgNoUser: "Tiada nama pengguna", msgNoPass: "Tiada kata laluan", msgNone: "Nama dan kata laluan tidak dimasukkan", msgNoAcc: "Akaun tidak wujud", msgWrongPass: "Kata laluan salah", msgSuccess: "Log masuk berjaya", genInfo: "Maklumat Umum", m1: "Latihan Wira", m2: "Panduan Peralatan", m3: "Pembangunan Bandar", m4: "Pembinaan Pulau", m5: "Peralatan Tuan", m6: "Permata Tuan", m7: "Latihan Haiwan Peliharaan", m8: "Acara Khas", sub1: "Kejohanan Perikatan", sub2: "Pertempuran Tempat Suci", sub3: "Ujian Gurun", sub4: "Memburu Beruang", sub5: "Pertempuran Istana", sub6: "Pertarungan Tanah Pedang" },
+            "id": { login: "Masuk", logout: "Keluar", userPlaceholder: "Nama Pengguna", passPlaceholder: "Kata Sandi", welcome: "Selamat Datang di Halaman Utama", return: "Kembali ke Beranda", dateFormat: "id-ID", msgNoUser: "Tidak ada nama pengguna", msgNoPass: "Tidak ada kata sandi", msgNone: "Nama dan kata sandi tidak dimasukkan", msgNoAcc: "Akun tidak ada", msgWrongPass: "Kata sandi salah", msgSuccess: "Berhasil masuk", genInfo: "Informasi Umum", m1: "Pelatihan Pahlawan", m2: "Panduan Peralatan", m3: "Pengembangan Kota", m4: "Pembangunan Pulau", m5: "Peralatan Lord", m6: "Permata Lord", m7: "Pelatihan Hewan Peliharaan", m8: "Acara Khusus", sub1: "Kejuaraan Aliansi", sub2: "Pertempuran Tempat Suci", sub3: "Ujian Gurun", sub4: "Berburu Beruang", sub5: "Pertempuran Kastil", sub6: "Pertarungan Tanah Pedang" },
+            "ko": { login: "로그인", logout: "로그아웃", userPlaceholder: "사용자 이름", passPlaceholder: "비밀번호", welcome: "메인 페이지에 오신 것을 환영합니다", return: "홈으로 돌아가기", dateFormat: "ko-KR", msgNoUser: "사용자 이름이 없습니다", msgNoPass: "비밀번호가 없습니다", msgNone: "사용자 이름과 비밀번호가 없습니다", msgNoAcc: "계정이 존재하지 않습니다", msgWrongPass: "잘못된 비밀번호", msgSuccess: "로그인 성공", genInfo: "일반 정보", m1: "영웅 훈련", m2: "장비 가이드", m3: "마을 발전", m4: "섬 건설", m5: "영주 장비", m6: "영주 보석", m7: "펫 훈련", m8: "특별 이벤트", sub1: "연맹 챔피언십", sub2: "성소 전투", sub3: "사막의 시련", sub4: "곰 사냥", sub5: "성 전투", sub6: "검의 땅 대결" },
+            "ja": { login: "ログイン", logout: "ログアウト", userPlaceholder: "ユーザー名", passPlaceholder: "パスワード", welcome: "メインページへようこそ", return: "ホームに戻る", dateFormat: "ja-JP", msgNoUser: "ユーザー名が入力されていません", msgNoPass: "パスワードが入力されていません", msgNone: "ユーザー名とパスワードが入力されていません", msgNoAcc: "アカウントが存在しません", msgWrongPass: "パスワードが間違っています", msgSuccess: "ログイン成功", genInfo: "一般情報", m1: "ヒーロー育成", m2: "装備ガイド", m3: "町の発展", m4: "島の建設", m5: "領主の装備", m6: "領主の宝石", m7: "ペット育成", m8: "特別イベント", sub1: "同盟チャンピオンシップ", sub2: "聖域の戦い", sub3: "砂漠の試練", sub4: "熊狩り", sub5: "城の戦い", sub6: "剣の地の対決" }
+        };
+        const t = uiTranslations[selectedLang] || uiTranslations["en"];
+
+        document.getElementById('welcome-text').innerText = t.welcome;
+        document.getElementById('return-text').innerText = t.return;
+
+        function updateTime() {
+            const now = new Date();
+            const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const targetTime = new Date(utcTime + (parseFloat(selectedUtc) * 3600000));
+            
+            const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            
+            const dateStr = targetTime.toLocaleDateString(t.dateFormat, dateOptions);
+            const timeStr = targetTime.toLocaleTimeString(t.dateFormat, timeOptions);
+
+            document.getElementById('local-time-display').innerText = `${dateStr} ${timeStr}`;
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        let msgTimeout;
+        function showTempMessage(msgText) {
+            const msgBox = document.getElementById('toolbar-msg');
+            msgBox.innerText = msgText;
+            if (msgTimeout) clearTimeout(msgTimeout);
+            msgTimeout = setTimeout(() => { msgBox.innerText = ""; }, 6000);
+        }
+
+        function renderSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+            let sidebarHTML = `
+                <div class="sidebar-item has-flyout">
+                    ${t.genInfo}
+                    <div class="flyout-menu">
+                        <div class="flyout-item">${t.m1}</div>
+                        <div class="flyout-item">${t.m2}</div>
+                        <div class="flyout-item">${t.m3}</div>
+                        <div class="flyout-item">${t.m4}</div>
+                        <div class="flyout-item">${t.m5}</div>
+                        <div class="flyout-item">${t.m6}</div>
+                        <div class="flyout-item">${t.m7}</div>
+                    </div>
+                </div>
+            `;
+
+            if (isLoggedIn) {
+                const passedParamStr = `L:${selectedLang.toUpperCase()} | U:${selectedUtc}`;
+                sidebarHTML += `
+                    <div class="sidebar-item has-flyout">
+                        ${t.m8}
+                        <span class="param-badge">[${passedParamStr}]</span>
+                        <div class="flyout-menu">
+                            <div class="flyout-item">${t.sub1}</div>
+                            <div class="flyout-item">${t.sub2}</div>
+                            <div class="flyout-item">${t.sub3}</div>
+                            <div class="flyout-item">${t.sub4}</div>
+                            <div class="flyout-item">${t.sub5}</div>
+                            <div class="flyout-item">${t.sub6}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            sidebar.innerHTML = sidebarHTML;
+        }
+
+        function renderAuthArea() {
+            const authArea = document.getElementById('auth-area');
+            const returnLink = document.getElementById('return-text');
+            const devContainer = document.getElementById('future-dev-container');
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+            if (isLoggedIn) {
+                const loggedUser = localStorage.getItem('loggedInUser');
+                authArea.innerHTML = `
+                    <span class="username-display">${loggedUser}</span>
+                    <button class="btn-logout" onclick="handleLogout()">${t.logout}</button>
+                `;
+                returnLink.style.display = 'none';
+                devContainer.style.display = 'block';
+                document.getElementById('dev-param-display').innerText = `TOKEN_${loggedUser.toUpperCase()}_L${selectedLang}_U${selectedUtc}`;
+            } else {
+                authArea.innerHTML = `
+                    <input type="text" id="user-input" placeholder="${t.userPlaceholder}">
+                    <input type="password" id="pass-input" placeholder="${t.passPlaceholder}">
+                    <button class="btn-login" onclick="handleLogin()">${t.login}</button>
+                `;
+                returnLink.style.display = 'inline-block';
+                devContainer.style.display = 'none';
+            }
+            renderSidebar();
+        }
+
+        function handleLogin() {
+            const userInp = document.getElementById('user-input').value;
+            const passInp = document.getElementById('pass-input').value;
+            if (userInp === "" && passInp === "") {
+                showTempMessage(t.msgNone);
+            } else if (userInp === "") {
+                showTempMessage(t.msgNoUser);
+            } else if (passInp === "") {
+                showTempMessage(t.msgNoPass);
+            } else {
+                if (!userDatabase.hasOwnProperty(userInp)) {
+                    showTempMessage(t.msgNoAcc);
+                } else if (userDatabase[userInp] !== passInp) {
+                    showTempMessage(t.msgWrongPass);
+                } else {
+                    showTempMessage(t.msgSuccess);
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('loggedInUser', userInp);
+                    renderAuthArea();
+                }
+            }
+        }
+
+        function handleLogout() {
+            localStorage.setItem('isLoggedIn', 'false');
+            localStorage.removeItem('loggedInUser');
+            window.location.href = 'index.html';
+        }
+
+        renderAuthArea();
+    </script>
+</body>
+</html>

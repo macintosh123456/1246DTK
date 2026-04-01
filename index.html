@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DTK - Kingdom 1246</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #error-msg {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            background-color: #ffe6e6;
+            display: none;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            box-sizing: border-box;
+        }
+
+        .main-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-dtk {
+            font-size: 8rem;
+            font-weight: bold;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            margin: 10px 0 40px 0;
+            color: #666;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        select, button {
+            padding: 10px 15px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="error-msg">Local time not selected</div>
+
+    <div class="main-container">
+        <h1 class="title-dtk">DTK</h1>
+        <div class="subtitle"><span id="kingdom-text">Kingdom</span> 1246</div>
+        
+        <div class="controls-row">
+            <select id="lang-select" onchange="changeLanguage()">
+                <option value="en" selected>English</option>
+                <option value="pt">Português</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="it">Italiano</option>
+                <option value="pl">Polski</option>
+                <option value="de-at">Österreichisches Deutsch</option>
+                <option value="hu">Magyar</option>
+                <option value="ru">Русский</option>
+                <option value="tr">Türkçe</option>
+                <option value="ar">العربية</option>
+                <option value="fa">فارسی</option>
+                <option value="ta">தமிழ்</option>
+                <option value="zh-cn">简体中文</option>
+                <option value="vi">Tiếng Việt</option>
+                <option value="zh-tw">繁體中文</option>
+                <option value="ms">Bahasa Melayu</option>
+                <option value="id">Bahasa Indonesia</option>
+                <option value="ko">한국어</option>
+                <option value="ja">日本語</option>
+            </select>
+
+            <select id="utc-select">
+                <option value="" id="utc-empty-option"></option>
+                <option value="-12">UTC -12:00</option>
+                <option value="-11">UTC -11:00</option>
+                <option value="-10">UTC -10:00</option>
+                <option value="-9">UTC -09:00</option>
+                <option value="-8">UTC -08:00</option>
+                <option value="-7">UTC -07:00</option>
+                <option value="-6">UTC -06:00</option>
+                <option value="-5">UTC -05:00</option>
+                <option value="-4">UTC -04:00</option>
+                <option value="-3">UTC -03:00</option>
+                <option value="-2">UTC -02:00</option>
+                <option value="-1">UTC -01:00</option>
+                <option value="0">UTC ±00:00</option>
+                <option value="+1">UTC +01:00</option>
+                <option value="+2">UTC +02:00</option>
+                <option value="+3">UTC +03:00</option>
+                <option value="+4">UTC +04:00</option>
+                <option value="+5">UTC +05:00</option>
+                <option value="+6">UTC +06:00</option>
+                <option value="+7">UTC +07:00</option>
+                <option value="+8">UTC +08:00</option>
+                <option value="+9">UTC +09:00</option>
+                <option value="+10">UTC +10:00</option>
+                <option value="+11">UTC +11:00</option>
+                <option value="+12">UTC +12:00</option>
+                <option value="+13">UTC +13:00</option>
+                <option value="+14">UTC +14:00</option>
+            </select>
+
+            <button id="enter-btn" onclick="checkEnter()">Enter</button>
+        </div>
+    </div>
+
+    <div class="footer-row">
+        <button id="trans-btn">Translation Request</button>
+        <button id="add-lang-btn">Add Language</button>
+    </div>
+
+    <script>
+        const translations = {
+            "en": { error: "Local time not selected", enter: "Enter", utcEmpty: "Select UTC...", trans: "Translation Request", add: "Add Language", kingdom: "Kingdom" },
+            "pt": { error: "Hora local não selecionada", enter: "Entrar", utcEmpty: "Selecione UTC...", trans: "Pedido de Tradução", add: "Adicionar Idioma", kingdom: "Reino" },
+            "es": { error: "Hora local no seleccionada", enter: "Entrar", utcEmpty: "Seleccionar UTC...", trans: "Solicitud de Traducción", add: "Añadir Idioma", kingdom: "Reino" },
+            "fr": { error: "Heure locale non sélectionnée", enter: "Entrer", utcEmpty: "Sélectionner UTC...", trans: "Demande de Traduction", add: "Ajouter une Langue", kingdom: "Royaume" },
+            "de": { error: "Ortszeit nicht ausgewählt", enter: "Eintreten", utcEmpty: "UTC wählen...", trans: "Übersetzungsanfrage", add: "Sprache Hinzufügen", kingdom: "Königreich" },
+            "it": { error: "Ora locale non selezionata", enter: "Entra", utcEmpty: "Seleziona UTC...", trans: "Richiesta di Traduzione", add: "Aggiungi Lingua", kingdom: "Regno" },
+            "pl": { error: "Czas lokalny nie został wybrany", enter: "Wejdź", utcEmpty: "Wybierz UTC...", trans: "Prośba o Tłumaczenie", add: "Dodaj Język", kingdom: "Królestwo" },
+            "de-at": { error: "Ortszeit nicht ausgewählt", enter: "Eintreten", utcEmpty: "UTC wählen...", trans: "Übersetzungsanfrage", add: "Sprache Hinzufügen", kingdom: "Königreich" },
+            "hu": { error: "Helyi idő nincs kiválasztva", enter: "Belépés", utcEmpty: "Válassz UTC-t...", trans: "Fordítási Kérelem", add: "Nyelv Hozzáadása", kingdom: "Királyság" },
+            "ru": { error: "Местное время не выбрано", enter: "Войти", utcEmpty: "Выберите UTC...", trans: "Запрос Перевода", add: "Добавить Язык", kingdom: "Королевство" },
+            "tr": { error: "Yerel saat seçilmedi", enter: "Giriş", utcEmpty: "UTC Seç...", trans: "Çeviri İsteği", add: "Dil Ekle", kingdom: "Krallık" },
+            "ar": { error: "التوقيت المحلي غير محدد", enter: "دخول", utcEmpty: "حدد UTC...", trans: "طلب ترجمة", add: "إضافة لغة", kingdom: "مملكة" },
+            "fa": { error: "زمان محلی انتخاب نشده است", enter: "ورود", utcEmpty: "انتخاب UTC...", trans: "درخواست ترجمه", add: "افزودن زبان", kingdom: "پادشاهی" },
+            "ta": { error: "உள்ளூர் நேரம் தேர்ந்தெடுக்கப்படவில்லை", enter: "உள்ளிடவும்", utcEmpty: "UTC ஐ தேர்ந்தெடுக்கவும்...", trans: "மொழிபெயர்ப்பு கோரிக்கை", add: "மொழியைச் சேர்", kingdom: "ராஜ்யம்" },
+            "zh-cn": { error: "没有选择当地时间", enter: "进入", utcEmpty: "选择 UTC...", trans: "翻译请求", add: "添加语言", kingdom: "王国" },
+            "vi": { error: "Chưa chọn giờ địa phương", enter: "Vào", utcEmpty: "Chọn UTC...", trans: "Yêu cầu Dịch thuật", add: "Thêm Ngôn ngữ", kingdom: "Vương quốc" },
+            "zh-tw": { error: "沒有選擇當地時間", enter: "進入", utcEmpty: "選擇 UTC...", trans: "翻譯請求", add: "添加語言", kingdom: "王國" },
+            "ms": { error: "Masa tempatan tidak dipilih", enter: "Masuk", utcEmpty: "Pilih UTC...", trans: "Permintaan Terjemahan", add: "Tambah Bahasa", kingdom: "Kerajaan" },
+            "id": { error: "Waktu lokal belum dipilih", enter: "Masuk", utcEmpty: "Pilih UTC...", trans: "Permintaan Terjemahan", add: "Tambah Bahasa", kingdom: "Kerajaan" },
+            "ko": { error: "현지 시간이 선택되지 않았습니다", enter: "입장", utcEmpty: "UTC 선택...", trans: "번역 요청", add: "언어 추가", kingdom: "왕국" },
+            "ja": { error: "現地時間が選択されていません", enter: "入る", utcEmpty: "UTCを選択...", trans: "翻訳リクエスト", add: "言語を追加", kingdom: "王国" }
+        };
+
+        function changeLanguage() {
+            const lang = document.getElementById("lang-select").value;
+            const t = translations[lang] || translations["en"];
+
+            document.getElementById("error-msg").innerText = t.error;
+            document.getElementById("enter-btn").innerText = t.enter;
+            document.getElementById("utc-empty-option").innerText = t.utcEmpty;
+            document.getElementById("trans-btn").innerText = t.trans;
+            document.getElementById("add-lang-btn").innerText = t.add;
+            document.getElementById("kingdom-text").innerText = t.kingdom;
+            document.getElementById("error-msg").style.display = "none";
+        }
+
+        function checkEnter() {
+            const utcSelect = document.getElementById("utc-select");
+            const langSelect = document.getElementById("lang-select");
+            const errorMsg = document.getElementById("error-msg");
+            
+            if (utcSelect.value === "") {
+                errorMsg.style.display = "block";
+            } else {
+                errorMsg.style.display = "none";
+                // 更新跳轉目標為 main.html
+                const targetUrl = `main.html?lang=${langSelect.value}&utc=${utcSelect.value}`;
+                window.location.href = targetUrl;
+            }
+        }
+
+        window.onload = function() {
+            changeLanguage();
+        };
+    </script>
+</body>
+</html>
